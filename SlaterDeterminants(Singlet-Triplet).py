@@ -5,7 +5,7 @@ import numpy
 import bitarray
 from bitarray import bitarray
 
-# State [1,2,3,4] 
+# State [1,2,3,4] Odd2Odd and Even2Even Only.
 # binState |111100000...0m> 
 
 @jit(nopython=True,fastmath=True)

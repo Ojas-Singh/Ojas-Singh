@@ -1,4 +1,4 @@
-import numpy 
+import numpy as np
 from bitarray import bitarray
 import numba
 from numba import jit
@@ -33,7 +33,7 @@ def Hstar(file,m):
 
 @jit(nopython=True,fastmath=True)
 def createInitialState(n,m,excite):
-    state = numpy.zeros(n)
+    state = np.zeros(n)
     if excite == 'Singlet' :
         for i in range(n):
             state[i] = i+1
@@ -56,7 +56,7 @@ def odometer(state,n,m):
                     newState[k] = l + 2 + k - j 
             if newState[j] != l:
                 return newState
-    newState = numpy.zeros(n)
+    newState = np.zeros(n)
     return newState
 
 def createBinaryState(state,n,m):
@@ -72,7 +72,7 @@ def createSlaterDeterminants(n,m,excite):
     binStates.append(createBinaryState(state,n,m))
     while True :
         state = odometer(state,n,m)
-        if numpy.sum(state) == 0:
+        if np.sum(state) == 0:
             break
         binStates.append(createBinaryState(state,n,m))
     return binStates
@@ -171,7 +171,7 @@ def secondQuantizationTwoBodyOperator(p,q,r,s,state1,state2):
 
 
 def computeHamiltonianMatrix(slaterDeterminants,V,Hone,M):
-    nSlaterDeterminants = len(binStates) 
+    nSlaterDeterminants = len(slaterDeterminants) 
     nOrbitals = M
     H = np.zeros([nSlaterDeterminants,nSlaterDeterminants])
 
@@ -185,7 +185,7 @@ def computeHamiltonianMatrix(slaterDeterminants,V,Hone,M):
                     phase = 0
                     phase += secondQuantizationOneBodyOperator(2*p,2*q,slaterDeterminants[n],slaterDeterminants[m])
                     phase += secondQuantizationOneBodyOperator(2*p+1,2*q+1,slaterDeterminants[n],slaterDeterminants[m])
-                    H[m,n] += Hone(p,q)*phase
+                    H[m,n] += Hone[p,q]*phase
 
                     # Two-body interaction
 
@@ -203,7 +203,7 @@ def computeHamiltonianMatrix(slaterDeterminants,V,Hone,M):
                                 H[m, n] += 0.5*V[p,q,r,s]*phase
             # H(n, m) = std::conj(H(m,n)); 
             if m != n :
-                H[n,m] = np.conj(H(m,n))
+                H[n,m] = np.conj(H[m,n])
     return H
 
 

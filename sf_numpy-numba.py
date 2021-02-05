@@ -129,7 +129,8 @@ def removeParticle(n,binstate):
 
 
 @jit(nopython=True,fastmath=True)
-def secondQuantizationOneBodyOperator(p,q,state1,state2):
+def secondQuantizationOneBodyOperator(p,q,state,state2):
+    state1 = state.copy()
     phase = 1
 
     removeParticle(q,state1)
@@ -146,7 +147,8 @@ def secondQuantizationOneBodyOperator(p,q,state1,state2):
         phase = 0
     return phase
 @jit(nopython=True,fastmath=True)
-def secondQuantizationTwoBodyOperator(p,q,r,s,state1,state2):
+def secondQuantizationTwoBodyOperator(p,q,r,s,state,state2):
+    state1 = state.copy()
     phase = 1
     #  Removing r
     removeParticle(r,state1)
@@ -172,17 +174,17 @@ def secondQuantizationTwoBodyOperator(p,q,r,s,state1,state2):
         return 0
     return phase
 
-@jit(nopython=True,parallel=False)
+@jit(nopython=True,parallel=True,fastmath=True)
 def computeHamiltonianMatrix(slaterDeterminants,V,Hone,M):
     nSlaterDeterminants = int(len(slaterDeterminants))
     nOrbitals = M
     H = np.zeros((nSlaterDeterminants,nSlaterDeterminants))
 
-    for m in range(nSlaterDeterminants):
-        for n in range(m,nSlaterDeterminants):
+    for m in prange(nSlaterDeterminants):
+        for n in prange(m,nSlaterDeterminants):
             #
-            for p in range(nOrbitals):
-                for q in range(nOrbitals):
+            for p in prange(nOrbitals):
+                for q in prange(nOrbitals):
                     # One body part
 
                     phase = 0
@@ -192,8 +194,8 @@ def computeHamiltonianMatrix(slaterDeterminants,V,Hone,M):
 
                     # Two-body interaction
 
-                    for r in range(nOrbitals):
-                        for s in range(nOrbitals):
+                    for r in prange(nOrbitals):
+                        for s in prange(nOrbitals):
                             if V[p,q,r,s] != 0 :
                                 phase = 0
                                 phase += secondQuantizationTwoBodyOperator(2*p, 2*q, 2*r, 2*s,slaterDeterminants[n],slaterDeterminants[m])
@@ -220,15 +222,16 @@ excite = 'Singlet' # Singlet or Triplet
 twoelectron_file = 'trnseemat.dat'
 oneelectron_file = 'trnsh.dat'
 
-##############
+######
 
-saveSlaterDeterminantsToDisk(createSlaterDeterminants(n,m,excite))
-
+# saveSlaterDeterminantsToDisk(createSlaterDeterminants(n,m,excite))
+# saveSlaterDeterminantsToDisk(computeHamiltonianMatrix(createSlaterDeterminants(n,m,excite),Vpqrs(twoelectron_file,15),Hstar(oneelectron_file,15),15)[1])
+# print(len(createSlaterDeterminants(n,m,excite)))
 
 Hamiltonian = computeHamiltonianMatrix(createSlaterDeterminants(n,m,excite),Vpqrs(twoelectron_file,15),Hstar(oneelectron_file,15),15)
 np.save('H.npy', Hamiltonian)
 np.savetxt('H.txt',Hamiltonian)
-#  Hamiltonian = np.load('H.npy')
+# Hamiltonian = np.load('H.npy')
 w,v = np.linalg.eigh(Hamiltonian)
 np.savetxt('w.txt',w)
 np.savetxt('v.txt',v)

@@ -23,7 +23,6 @@ def Hstar(file,m):
     line = 0
     for i in range(m):
         for j in range(m):
-            # print(float(lines[i+j][0:-21].strip()[1:]))
             H[i,j] = float(lines[line].replace(" ", "").replace('(','').replace(')',"").split(',')[0])
             line = line +1
             
@@ -31,48 +30,87 @@ def Hstar(file,m):
 
 @jit(nopython=True,fastmath=True)
 def createInitialState(n,m,excite):
-    state = np.zeros(n)
     if excite == 'Singlet' :
-        for i in range(n):
-            state[i] = i+1
-    if excite == 'Triplet' :
-        for i in range(n-1):
-            state[i] = i+1
-        state[n-1] = n+1
-    return state
+        if n%2 == 0 :
+            stateUp = np.zeros(int(n/2))
+            stateDown = np.zeros(int(n/2))
+            for i in range(int(n/2)):
+                stateUp[i] = i+1
+                stateDown[i] = i+1
+            return stateUp,stateDown
+        else:
+            stateUp = np.zeros(int(n/2)+1)
+            stateDown = np.zeros(int(n/2))
+            for i in range(int(n/2)):
+                stateUp[i] = i+1
+                stateDown[i] = i+1
+            stateUp[-1] = int(n/2+1)
+            return stateUp,stateDown
+    # if excite == 'Triplet' :
+    #     for i in range(n-1):
+    #         state[i] = i+1
+    #     state[n-1] = n+1
+
+    return stateUp,stateDown
+
 @jit(nopython=True,fastmath=True)
 def odometer(state,n,m):
+    n=n-1
     newState = state.copy()
     l = 0
-    for j in range(n-1,-1,-1):
+    for j in range(n,-1,-1):
         if newState[j] < m - n + j  :
             l = newState[j]
-            for k in range(j,n):
-                if newState[k]%2 == 0 and (l + 2 + k - j)%2 == 0 and (l + 2 + k - j) not in newState:
-                    newState[k] = l + 2 + k - j 
-                if newState[k]%2 != 0 and (l + 2 + k - j)%2 != 0 and (l + 2 + k - j) not in newState:
-                    newState[k] = l + 2 + k - j 
+            for k in range(j,n+1):
+                newState[k] = l + 1 + k - j    
             if newState[j] != l:
                 return newState
     newState = np.zeros(n)
     return newState
 
-def createBinaryState(state,n,m):
-    binState = np.zeros(m+1,dtype=np.bool)
-    for i in state.astype(int):
-        binState[i-1] = True
+@jit(nopython=True,fastmath=True)
+def createBinaryState(state,n,m,binState):
+    # for i in state.astype(int):
+    for i in state:
+        binState[int(i)-1] = True
     return binState
 
+def mix(Up,Down):
+    state = [2*i-1 for i in Up] + [2*i for i in Down]
+    return state
+# @jit(nopython=False,fastmath=True)
 def createSlaterDeterminants(n,m,excite):
-    state = createInitialState(n,m,excite).copy()
+    if n%2 == 0:
+        N = int(n/2) 
+    else: 
+        N = int(n/2)+1
+    stateUp = createInitialState(n,m,excite)[0].copy()
+    stateDown = createInitialState(n,m,excite)[1].copy()
+    statesUp = [stateUp.copy()]
+    statesDown = [stateDown.copy()]
     binStates = []
-    binStates.append(createBinaryState(state,n,m))
-    while True :
-        state = odometer(state,n,m)
+    # binStates.append(createBinaryState(state,n,m))
+    up = True
+    down = True
+    state = stateUp
+    while up :
+        state = odometer(state,N,m)
         if np.sum(state) == 0:
-            break
-        binStates.append(createBinaryState(state,n,m))
-    
+            up = False
+        else:
+            statesUp.append(state)
+        # binStates.append(createBinaryState(state,n,m))
+    state = stateDown
+    while down :
+        state = odometer(state,int(n/2),m)
+        if np.sum(state) == 0:
+            down = False
+        else:
+            statesDown.append(state)
+    for i in statesUp:
+        for j in statesDown:
+            binStates.append(createBinaryState(mix(i,j),n,m,np.zeros(int(2*m+1),dtype=np.bool)))
+
     return binStates
 
 
@@ -217,14 +255,16 @@ def computeHamiltonianMatrix(slaterDeterminants,V,Hone,M):
 
 ### Config ###
 n = 2
-m = 30
+m = 15
 excite = 'Singlet' # Singlet or Triplet
 twoelectron_file = 'trnseemat.dat'
 oneelectron_file = 'trnsh.dat'
 
+
+
 ######
 
-# saveSlaterDeterminantsToDisk(createSlaterDeterminants(n,m,excite))
+saveSlaterDeterminantsToDisk(createSlaterDeterminants(n,m,excite))
 # saveSlaterDeterminantsToDisk(computeHamiltonianMatrix(createSlaterDeterminants(n,m,excite),Vpqrs(twoelectron_file,15),Hstar(oneelectron_file,15),15)[1])
 # print(len(createSlaterDeterminants(n,m,excite)))
 

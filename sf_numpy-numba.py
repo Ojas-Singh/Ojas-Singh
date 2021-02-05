@@ -72,6 +72,7 @@ def createSlaterDeterminants(n,m,excite):
         if np.sum(state) == 0:
             break
         binStates.append(createBinaryState(state,n,m))
+    
     return binStates
 
 
@@ -79,7 +80,7 @@ def saveSlaterDeterminantsToDisk(binStates):
     filename = 'SlaterDeterminants.sd'
     SlaterDeterminants = open(filename,"w+") 
     for i in binStates:
-        bitStr = str(i)[10:-2]
+        bitStr = str(np.array(i,dtype=int)).replace(" ","")[1:-1]
         SlaterDeterminants.write(bitStr+'\n')
     return
 
@@ -104,24 +105,26 @@ def addParticle(n,binstate):
     if binstate[-1] == False:
         a = binstate.copy()
         a[:] = False
-        a[n-1] = True
+        a[n] = True
         comp = np.bitwise_and(a,binstate)
-        if np.sum(comp) == False :
-            binstate[n-1] = True
+        # comp = a & binstate
+        if comp.any() == False :
+            binstate[n] = True
         else :
-            binstate[len(binstate)-1] = True
+            binstate[-1] = True
     return 
 @jit(nopython=True,fastmath=True)
 def removeParticle(n,binstate):
     if binstate[-1] == False:
         a = binstate.copy()
         a[:] = False
-        a[n-1] = True
+        a[n] = True
         comp = np.bitwise_and(a,binstate)
-        if np.sum(comp) == True :
-            binstate[n-1] = False
+        # comp = a & binstate
+        if comp.any() == True :
+            binstate[n] = False
         else :
-            binstate[len(binstate)-1] = True
+            binstate[-1] = True
     return 
 
 
@@ -139,7 +142,7 @@ def secondQuantizationOneBodyOperator(p,q,state1,state2):
         return 0
     phase *= sign(p,state1)
 
-    if state2 != state1:
+    if (state1!=state2).any():
         phase = 0
     return phase
 @jit(nopython=True,fastmath=True)
@@ -165,21 +168,21 @@ def secondQuantizationTwoBodyOperator(p,q,r,s,state1,state2):
     if state1[-1]== True:
         return 0
     phase *= sign(p,state1)
-    if state1 != state2:
+    if (state1!=state2).any():
         return 0
     return phase
 
-@jit(nopython=True,fastmath=True,parallel=True)
+@jit(nopython=True,parallel=False)
 def computeHamiltonianMatrix(slaterDeterminants,V,Hone,M):
     nSlaterDeterminants = int(len(slaterDeterminants))
     nOrbitals = M
     H = np.zeros((nSlaterDeterminants,nSlaterDeterminants))
 
-    for m in prange(nSlaterDeterminants):
-        for n in prange(m,nSlaterDeterminants):
+    for m in range(nSlaterDeterminants):
+        for n in range(m,nSlaterDeterminants):
             #
-            for p in prange(nOrbitals):
-                for q in prange(nOrbitals):
+            for p in range(nOrbitals):
+                for q in range(nOrbitals):
                     # One body part
 
                     phase = 0
@@ -189,8 +192,8 @@ def computeHamiltonianMatrix(slaterDeterminants,V,Hone,M):
 
                     # Two-body interaction
 
-                    for r in prange(nOrbitals):
-                        for s in prange(nOrbitals):
+                    for r in range(nOrbitals):
+                        for s in range(nOrbitals):
                             if V[p,q,r,s] != 0 :
                                 phase = 0
                                 phase += secondQuantizationTwoBodyOperator(2*p, 2*q, 2*r, 2*s,slaterDeterminants[n],slaterDeterminants[m])
@@ -201,6 +204,7 @@ def computeHamiltonianMatrix(slaterDeterminants,V,Hone,M):
 
                                 phase += secondQuantizationTwoBodyOperator(2*p+1, 2*q, 2*r+1, 2*s,slaterDeterminants[n],slaterDeterminants[m])
                                 H[m, n] += 0.5*V[p,q,r,s]*phase
+                                
             # H(n, m) = std::conj(H(m,n)); 
             if m != n :
                 H[n,m] = np.conj(H[m,n])
@@ -216,12 +220,15 @@ excite = 'Singlet' # Singlet or Triplet
 twoelectron_file = 'trnseemat.dat'
 oneelectron_file = 'trnsh.dat'
 
-######
-# print(len(createSlaterDeterminants(n,m,excite)))
+##############
+
+saveSlaterDeterminantsToDisk(createSlaterDeterminants(n,m,excite))
+
 
 Hamiltonian = computeHamiltonianMatrix(createSlaterDeterminants(n,m,excite),Vpqrs(twoelectron_file,15),Hstar(oneelectron_file,15),15)
-print(Hamiltonian)
-# np.save('H.npy', Hamiltonian)
-# Hamiltonian = np.load('H.npy')
-# w,v = np.linalg.eigh(Hamiltonian)
-# print(w,v)
+np.save('H.npy', Hamiltonian)
+np.savetxt('H.txt',Hamiltonian)
+#  Hamiltonian = np.load('H.npy')
+w,v = np.linalg.eigh(Hamiltonian)
+np.savetxt('w.txt',w)
+np.savetxt('v.txt',v)

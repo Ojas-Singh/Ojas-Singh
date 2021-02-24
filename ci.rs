@@ -4,7 +4,7 @@ extern crate num_iter;
 extern crate bit_vec;
 use bit_vec::BitVec;
 use std::fs::File;
-use std::io::{self, BufRead};
+use std::io::{self, BufRead, BufWriter, Write};
 use std::path::Path;
 fn help() {
     println!("usage:: pass system args as :
@@ -49,7 +49,7 @@ fn main() {
     let ham = computeHamiltonianMatrix(binstates, Vmat, Honemat, m as usize);
     // let eigen = EigValshInto();
     print!("Done! {:?}",ham);
-
+    save_hamiltonian_txt(ham, "ham.txt".to_string());
 
 }
 
@@ -396,4 +396,15 @@ pub fn computeHamiltonianMatrix(binstates:Vec<BitVec>,v:Vec<Vec<Vec<Vec<f64>>>>,
         }
     }
     return hamiltonian;
+}
+
+pub fn save_hamiltonian_txt(hamiltonian:Vec<Vec<f64>>,file:String) {
+    let buffer = File::create(file).expect("Unable to create file");
+    let mut f = BufWriter::new(buffer);
+    for i in 0..hamiltonian.len() {
+        for j in 0..hamiltonian[i].len() {
+            let data = hamiltonian[i][j].to_string() + " \n";
+            f.write_all(data.as_bytes()).expect("Unable to write data");
+        }
+    }
 }

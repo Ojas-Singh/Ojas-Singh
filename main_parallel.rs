@@ -2,7 +2,7 @@
 use std::env;
 extern crate num_iter;
 extern crate typenum;
-use typenum::{ U64};
+use typenum::{ U1000};
 use bit_array::BitArray;
 use std::fs::File;
 use std::path::Path;
@@ -52,15 +52,13 @@ fn main() {
     println!("n : {}, m : {}, excite : {}, oneElectron : {}, twoElectron : {}", n,m,excite,f1,f2);
     let Honemat = Hone(f1.to_string(),m as usize);
     let Vmat = Vpqrs(f2.to_string(), m as usize);
-    let binstates = createslaterdeterminants(n as usize, m as usize, excite.to_string());
+    let binstates = createslaterdeterminants_SD(n as usize, m as usize, excite.to_string());
     println!("Total Generated States :{}",binstates.len());
     
     let ham = computeHamiltonianMatrix(binstates, Vmat, Honemat, m as usize);
 
     // print!("Done! {:?}",ham);
     save_hamiltonian_txt(ham, "ham.txt".to_string());
-    
-
 }
 
 fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
@@ -204,9 +202,18 @@ pub fn odometer(state:Vec<isize>,n:isize,m:isize) -> Vec<isize> {
 
 }
 
+pub fn compare(state:Vec<isize>,ground:Vec<isize>)-> usize {
+    let mut numberofexited = 0;
+    for i in &state {
+        if !ground.contains(&i) {
+            numberofexited += 1;
+        }
+    }
+    return numberofexited ;
+}
 
-pub fn createbinarystatearray(state:Vec<isize>) -> BitArray::<u64,U64> {
-    let mut binstate = BitArray::<u64,U64>::from_elem(false);
+pub fn createbinarystatearray(state:Vec<isize>) -> BitArray::<u64,U1000> {
+    let mut binstate = BitArray::<u64,U1000>::from_elem(false);
     for i in state {
         let k:usize = (i-1) as usize;
         binstate.set(k,true);
@@ -214,7 +221,7 @@ pub fn createbinarystatearray(state:Vec<isize>) -> BitArray::<u64,U64> {
     return binstate;
 }
 
-pub fn createslaterdeterminants(n:usize,m:usize,excite:String) -> Vec<BitArray::<u64,U64>> {
+pub fn createslaterdeterminants(n:usize,m:usize,excite:String) -> Vec<BitArray::<u64,U1000>> {
     let mut binstates = Vec::new();
     let N :usize;
     if n%2 ==0 {
@@ -251,15 +258,68 @@ pub fn createslaterdeterminants(n:usize,m:usize,excite:String) -> Vec<BitArray::
             statesdown.push(statedown.clone());
         }
     }
-
     for i in statesup {
         for j in &statesdown {
             let binstate = createbinarystatearray(mix(i.to_vec(),j.to_vec()));
             binstates.push(binstate);
         }
     }
-    return binstates;
 
+    return binstates;
+}
+
+pub fn createslaterdeterminants_SD(n:usize,m:usize,excite:String) -> Vec<BitArray::<u64,U1000>> {
+    let mut binstates = Vec::new();
+    let N :usize;
+    if n%2 ==0 {
+        N = n/2;
+    }
+    else{
+        N = n/2 +1 ;
+    }
+    let mut stateup = creatinitialstate(excite.to_string(), n as usize)[0].clone();
+    let mut statedown = creatinitialstate(excite.to_string(), n as usize)[1].clone();
+    let mut statesup = Vec::new();
+    statesup.push(stateup.clone());
+    let mut statesdown = Vec::new();
+    statesdown.push(statedown.clone());
+    let mut up =true ;
+    let mut down = true ;
+    let ground = mix(statesup[0].to_vec(),statesdown[0].to_vec());
+    while up {
+        stateup = odometer(stateup, N as isize, m as isize) ;
+        let sm:isize = stateup.iter().sum();
+        if sm == 0  {
+            up = false;
+        }
+        else {
+            if compare(stateup.clone(), ground.clone()) < 3 {
+                statesup.push(stateup.clone());
+            }
+        }
+    }
+    while down {
+        statedown = odometer(statedown, (n/2) as isize, m as isize) ;
+        let sm:isize = statedown.iter().sum();
+        if sm == 0  {
+            down = false;
+        }
+        else {
+            if compare(stateup.clone(), ground.clone()) < 3 {
+                statesdown.push(statedown.clone());
+            }
+        }
+    }
+    for i in statesup {
+        for j in &statesdown {
+            let state = mix(i.to_vec(),j.to_vec());
+            if compare(state.clone(), ground.clone()) < 3 {
+                let binstate = createbinarystatearray(state);
+                binstates.push(binstate);
+            }
+        }
+    }
+    return binstates;
 }
 
 pub fn mix(state1:Vec<isize>,state2:Vec<isize>) -> Vec<isize>{
@@ -273,7 +333,7 @@ pub fn mix(state1:Vec<isize>,state2:Vec<isize>) -> Vec<isize>{
     return state;
 }
 
-pub fn sign(n:usize,binstate:&BitArray::<u64,U64>) -> f64 {
+pub fn sign(n:usize,binstate:&BitArray::<u64,U1000>) -> f64 {
     let mut s = 1.0 ;
     if binstate.get(binstate.len()-1) != Some(true) {
         
@@ -287,9 +347,9 @@ pub fn sign(n:usize,binstate:&BitArray::<u64,U64>) -> f64 {
     return s;
 }
 
-pub fn addparticle(n:usize,binstate: &mut BitArray::<u64,U64>){
+pub fn addparticle(n:usize,binstate: &mut BitArray::<u64,U1000>){
     if binstate.get(binstate.len()-1) != Some(true) {
-        let mut a = BitArray::<u64,U64>::from_elem(false);
+        let mut a = BitArray::<u64,U1000>::from_elem(false);
         a.set(n,true); 
         let comp = a.intersect(&binstate);
         if comp {
@@ -303,9 +363,9 @@ pub fn addparticle(n:usize,binstate: &mut BitArray::<u64,U64>){
 }
 
 
-pub fn removeparticle(n:usize,binstate: &mut BitArray::<u64,U64>){
+pub fn removeparticle(n:usize,binstate: &mut BitArray::<u64,U1000>){
     if binstate.get(binstate.len()-1) != Some(true)  {
-        let mut a = BitArray::<u64,U64>::from_elem(false);
+        let mut a = BitArray::<u64,U1000>::from_elem(false);
         a.set(n,true); 
         let comp = a.intersect(&binstate);
         if !comp {
@@ -317,7 +377,7 @@ pub fn removeparticle(n:usize,binstate: &mut BitArray::<u64,U64>){
     }
     
 }
-pub fn secondQuantizationOneBodyOperator(p:usize,q:usize,state:&BitArray::<u64,U64>,state2:&BitArray::<u64,U64>) -> f64{
+pub fn secondQuantizationOneBodyOperator(p:usize,q:usize,state:&BitArray::<u64,U1000>,state2:&BitArray::<u64,U1000>) -> f64{
     let mut phase = 1.0;
     let mut state1 = state.clone(); 
     let k =state1.len() -1 ;
@@ -337,7 +397,7 @@ pub fn secondQuantizationOneBodyOperator(p:usize,q:usize,state:&BitArray::<u64,U
     return phase;
 }
 
-pub fn secondQuantizationTwoBodyOperator(p:usize,q:usize,r:usize,s:usize,state:&BitArray::<u64,U64>,state2:&BitArray::<u64,U64>)-> f64{
+pub fn secondQuantizationTwoBodyOperator(p:usize,q:usize,r:usize,s:usize,state:&BitArray::<u64,U1000>,state2:&BitArray::<u64,U1000>)-> f64{
     let mut phase = 1.0 ;
     let mut state1 = state.clone(); 
     let k =state1.len() -1 ;
@@ -368,7 +428,7 @@ pub fn secondQuantizationTwoBodyOperator(p:usize,q:usize,r:usize,s:usize,state:&
     return phase;
 }
 
-pub fn computeHamiltonianMatrix(binstates:Vec<BitArray::<u64,U64>>,v:Vec<Vec<Vec<Vec<f64>>>>,h:Vec<Vec<f64>>,M:usize)-> Mutex<Vec<Vec<f64>>> {
+pub fn computeHamiltonianMatrix(binstates:Vec<BitArray::<u64,U1000>>,v:Vec<Vec<Vec<Vec<f64>>>>,h:Vec<Vec<f64>>,M:usize)-> Mutex<Vec<Vec<f64>>> {
     let nslater = binstates.len();
     let hamiltonian = Mutex::new(vec![vec![0.0;nslater];nslater]);
     (0..nslater).into_par_iter().for_each(|m|
@@ -402,7 +462,7 @@ pub fn computeHamiltonianMatrix(binstates:Vec<BitArray::<u64,U64>>,v:Vec<Vec<Vec
     return hamiltonian;
 }
 
-pub fn setter(n:usize,binstate:&mut BitArray::<u64,U64>) {
+pub fn setter(n:usize,binstate:&mut BitArray::<u64,U1000>) {
     binstate.set(n,true);
 }
 

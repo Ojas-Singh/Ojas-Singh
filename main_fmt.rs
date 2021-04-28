@@ -1,4 +1,7 @@
 #![allow(non_snake_case)]
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 use std::env;
 extern crate num_iter;
 extern crate typenum;
@@ -8,11 +11,8 @@ use std::fs::File;
 use std::io::{self, BufRead, BufWriter, Write};
 use std::path::Path;
 use std::sync::Mutex;
+use std::time::Instant;
 use typenum::U64;
-
-// use std::sync::{Arc, Mutex};
-// use std::sync::atomic::{AtomicUsize, Ordering};
-// use std::sync::Arc;
 
 fn help() {
     println!(
@@ -22,6 +22,10 @@ n , m , excite , oneElectronFilename , twoElectronFilename "
 }
 
 fn main() {
+    // rayon::ThreadPoolBuilder::new()
+    //     .num_threads(9)
+    //     .build_global()
+    //     .unwrap();
     println!("Reading Files ...");
     let args: Vec<String> = env::args().collect();
     let n0 = &args[1];
@@ -53,8 +57,10 @@ fn main() {
     let Vmat = Vpqrs(f2.to_string(), m as usize);
     let binstates = createslaterdeterminants_SD(n as usize, m as usize, excite.to_string());
     println!("Total Generated States :{}", binstates.len());
-
+    let start = Instant::now();
     let ham = computeHamiltonianMatrix(binstates, Vmat, Honemat, m as usize);
+    let duration = start.elapsed();
+    println!("Time elapsed in expensive_function() is: {:?}", duration);
 
     // print!("Done! {:?}",ham);
     save_hamiltonian_txt(ham, "ham.txt".to_string());
@@ -84,8 +90,8 @@ pub fn Hone(f1: String, M: usize) -> Vec<Vec<f64>> {
         let k = i.replace("(", "").replace(")", "").replace(" ", "");
         let vec: Vec<&str> = k.split(",").collect();
         let a: f64 = vec[0].parse().unwrap();
-        let b: f64 = vec[1].parse().unwrap();
-        Hab.push([a, b]);
+        // let b: f64 = vec[1].parse().unwrap();
+        Hab.push([a]);
     }
     for i in 0..M {
         for j in 0..M {
@@ -112,8 +118,8 @@ pub fn Vpqrs(f2: String, M: usize) -> Vec<Vec<Vec<Vec<f64>>>> {
         let k = i.replace("(", "").replace(")", "").replace(" ", "");
         let vec: Vec<&str> = k.split(",").collect();
         let a: f64 = vec[0].parse().unwrap();
-        let b: f64 = vec[1].parse().unwrap();
-        Vab.push([a, b]);
+        // let b: f64 = vec[1].parse().unwrap();
+        Vab.push([a]);
     }
     for i in 0..M {
         for j in 0..M {
@@ -326,9 +332,9 @@ pub fn mix(state1: Vec<isize>, state2: Vec<isize>) -> Vec<isize> {
 
 pub fn sign(n: usize, binstate: &BitArray<u64, U64>) -> f64 {
     let mut s = 1.0;
-    if binstate.get(binstate.len() - 1) != Some(true) {
-        for i in 0..n {
-            if binstate.get(i) != Some(false) {
+    if !binstate.get(binstate.len() - 1).unwrap() {
+        for i in binstate.iter().take(n) {
+            if i {
                 s *= -1.0;
             }
         }
@@ -338,7 +344,7 @@ pub fn sign(n: usize, binstate: &BitArray<u64, U64>) -> f64 {
 }
 
 pub fn addparticle(n: usize, binstate: &mut BitArray<u64, U64>) {
-    if binstate.get(binstate.len() - 1) != Some(true) {
+    if !binstate.get(binstate.len() - 1).unwrap() {
         let mut a = BitArray::<u64, U64>::from_elem(false);
         a.set(n, true);
         let comp = a.intersect(&binstate);
@@ -351,7 +357,7 @@ pub fn addparticle(n: usize, binstate: &mut BitArray<u64, U64>) {
 }
 
 pub fn removeparticle(n: usize, binstate: &mut BitArray<u64, U64>) {
-    if binstate.get(binstate.len() - 1) != Some(true) {
+    if !binstate.get(binstate.len() - 1).unwrap() {
         let mut a = BitArray::<u64, U64>::from_elem(false);
         a.set(n, true);
         let comp = a.intersect(&binstate);
@@ -452,42 +458,46 @@ pub fn computeHamiltonianMatrix(
                         &binstates[m],
                     );
                     hmn += h[p][q] * phase;
+
                     for r in 0..M {
                         for s in 0..M {
-                            phase = 0.0;
-                            phase += secondQuantizationTwoBodyOperator(
-                                2 * p,
-                                2 * q,
-                                2 * r,
-                                2 * s,
-                                &binstates[n],
-                                &binstates[m],
-                            );
-                            phase += secondQuantizationTwoBodyOperator(
-                                2 * p + 1,
-                                2 * q + 1,
-                                2 * r + 1,
-                                2 * s + 1,
-                                &binstates[n],
-                                &binstates[m],
-                            );
-                            phase += secondQuantizationTwoBodyOperator(
-                                2 * p,
-                                2 * q + 1,
-                                2 * r,
-                                2 * s + 1,
-                                &binstates[n],
-                                &binstates[m],
-                            );
-                            phase += secondQuantizationTwoBodyOperator(
-                                2 * p + 1,
-                                2 * q,
-                                2 * r + 1,
-                                2 * s,
-                                &binstates[n],
-                                &binstates[m],
-                            );
-                            hmn += 0.5 * v[p][r][q][s] * phase;
+                            let V = v[p][r][q][s];
+                            if V != 0.0 {
+                                phase = 0.0;
+                                phase += secondQuantizationTwoBodyOperator(
+                                    2 * p,
+                                    2 * q,
+                                    2 * r,
+                                    2 * s,
+                                    &binstates[n],
+                                    &binstates[m],
+                                );
+                                phase += secondQuantizationTwoBodyOperator(
+                                    2 * p + 1,
+                                    2 * q + 1,
+                                    2 * r + 1,
+                                    2 * s + 1,
+                                    &binstates[n],
+                                    &binstates[m],
+                                );
+                                phase += secondQuantizationTwoBodyOperator(
+                                    2 * p,
+                                    2 * q + 1,
+                                    2 * r,
+                                    2 * s + 1,
+                                    &binstates[n],
+                                    &binstates[m],
+                                );
+                                phase += secondQuantizationTwoBodyOperator(
+                                    2 * p + 1,
+                                    2 * q,
+                                    2 * r + 1,
+                                    2 * s,
+                                    &binstates[n],
+                                    &binstates[m],
+                                );
+                                hmn += 0.5 * V * phase;
+                            }
                         }
                     }
                 }
@@ -502,9 +512,6 @@ pub fn computeHamiltonianMatrix(
     return hamiltonian;
 }
 
-pub fn setter(n: usize, binstate: &mut BitArray<u64, U64>) {
-    binstate.set(n, true);
-}
 
 pub fn save_hamiltonian_txt(hamiltonian: Mutex<Vec<Vec<f64>>>, file: String) {
     let hamiltonian = hamiltonian.lock().unwrap();

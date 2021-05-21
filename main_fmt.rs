@@ -11,8 +11,9 @@ use std::fs::File;
 use std::io::{self, BufRead, BufWriter, Write};
 use std::path::Path;
 use std::sync::Mutex;
-use std::time::Instant;
 use typenum::U64;
+use std::time::{ Instant};
+
 
 fn help() {
     println!(
@@ -22,10 +23,7 @@ n , m , excite , oneElectronFilename , twoElectronFilename "
 }
 
 fn main() {
-    // rayon::ThreadPoolBuilder::new()
-    //     .num_threads(9)
-    //     .build_global()
-    //     .unwrap();
+    // rayon::ThreadPoolBuilder::new().num_threads(12).build_global().unwrap();
     println!("Reading Files ...");
     let args: Vec<String> = env::args().collect();
     let n0 = &args[1];
@@ -302,7 +300,7 @@ pub fn createslaterdeterminants_SD(n: usize, m: usize, excite: String) -> Vec<Bi
         if sm == 0 {
             down = false;
         } else {
-            if compare(stateup.clone(), ground.clone()) < 3 {
+            if compare(statedown.clone(), ground.clone()) < 3 {
                 statesdown.push(statedown.clone());
             }
         }
@@ -329,22 +327,19 @@ pub fn mix(state1: Vec<isize>, state2: Vec<isize>) -> Vec<isize> {
     }
     return state;
 }
-
+#[inline(always)]
 pub fn sign(n: usize, binstate: &BitArray<u64, U64>) -> f64 {
     let mut s = 1.0;
-    if !binstate.get(binstate.len() - 1).unwrap() {
-        for i in binstate.iter().take(n) {
-            if i {
-                s *= -1.0;
-            }
+    for i in binstate.iter().take(n) {
+        if i {
+            s *= -1.0;
         }
-        return s;
     }
-    return s;
+    return s; 
 }
-
+#[inline(always)]
 pub fn addparticle(n: usize, binstate: &mut BitArray<u64, U64>) {
-    if !binstate.get(binstate.len() - 1).unwrap() {
+    if binstate.get(binstate.len() - 1) != Some(true) {
         let mut a = BitArray::<u64, U64>::from_elem(false);
         a.set(n, true);
         let comp = a.intersect(&binstate);
@@ -355,9 +350,9 @@ pub fn addparticle(n: usize, binstate: &mut BitArray<u64, U64>) {
         }
     }
 }
-
+#[inline(always)]
 pub fn removeparticle(n: usize, binstate: &mut BitArray<u64, U64>) {
-    if !binstate.get(binstate.len() - 1).unwrap() {
+    if binstate.get(binstate.len() - 1) != Some(true) {
         let mut a = BitArray::<u64, U64>::from_elem(false);
         a.set(n, true);
         let comp = a.intersect(&binstate);
@@ -368,6 +363,7 @@ pub fn removeparticle(n: usize, binstate: &mut BitArray<u64, U64>) {
         }
     }
 }
+#[inline(always)]
 pub fn secondQuantizationOneBodyOperator(
     p: usize,
     q: usize,
@@ -392,7 +388,7 @@ pub fn secondQuantizationOneBodyOperator(
     }
     return phase;
 }
-
+#[inline(always)]
 pub fn secondQuantizationTwoBodyOperator(
     p: usize,
     q: usize,
@@ -458,11 +454,11 @@ pub fn computeHamiltonianMatrix(
                         &binstates[m],
                     );
                     hmn += h[p][q] * phase;
-
+                    
                     for r in 0..M {
                         for s in 0..M {
                             let V = v[p][r][q][s];
-                            if V != 0.0 {
+                            if  V != 0.0 {
                                 phase = 0.0;
                                 phase += secondQuantizationTwoBodyOperator(
                                     2 * p,
@@ -498,6 +494,8 @@ pub fn computeHamiltonianMatrix(
                                 );
                                 hmn += 0.5 * V * phase;
                             }
+                            
+                            
                         }
                     }
                 }

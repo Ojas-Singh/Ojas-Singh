@@ -1,0 +1,153 @@
+\nonstopmode
+\documentclass{prometheus_cv}
+\usepackage[utf8]{inputenc}
+% \usepackage[10pt, a4paper, total={5.3in, 10in}, top=2cm]{geometry}	
+\usepackage{geometry}
+ \geometry{
+ a4paper,
+ total={170mm,257mm},
+ left=30mm,
+ right= 30 mm,
+ top=12mm,
+ }
+% \usepackage[scale=0.8]{geometry}	% width=5.3in, height=10in, top margin=2cm on each page
+
+\usepackage{xcolor}																				  % define some colors
+\definecolor{coralred}{HTML}{cc6686}
+\definecolor{corallight}{HTML}{ffaf87}
+\definecolor{goog}{HTML}{735983}
+\definecolor{highlight}{HTML}{255d83}
+% \definecolor{highlight}{HTML}{283559}
+\definecolor{highlight2}{HTML}{1A2640}
+\definecolor{link}{HTML}{5C6273}
+\usepackage{multicol}
+\usepackage{mathpazo}
+\usepackage{textcomp}
+\usepackage{setspace}
+\usepackage{lipsum}
+\usepackage{siunitx}							% package to properly set units
+\usepackage{fontawesome5}						% package for icons (see list of available icons here: http://mirrors.ibiblio.org/CTAN/fonts/fontawesome5/doc/fontawesome5.pdf)
+\usepackage[super]{nth}							% when you write \nth{2} you get a nice superscript
+\usepackage[								% coloring of links
+	colorlinks = true,
+	linkcolor = highlight,
+	urlcolor = highlight,
+	citecolor= highlight
+]{hyperref}
+\usepackage{enumitem}
+\usepackage{fontspec}		
+\setmainfont[
+	BoldFont=Georgia Bold,
+	ItalicFont=Georgia Italic,
+	BoldItalicFont=Georgia Bold Italic
+]{Georgia}	
+% \setmainfont[
+% 	BoldFont=Bookerly Bold,
+% 	ItalicFont=Bookerly Italic,
+% 	BoldItalicFont=Bookerly Bold Italic
+% ]{Bookerly}						% package to change fonts				
+% \setmainfont[
+% 	BoldFont=Cormorant Garamond Bold,
+% 	ItalicFont=Cormorant Garamond Italic,
+% 	BoldItalicFont=Cormorant Garamond Bold Italic
+% ]{Cormorant Garamond Regular}						% Set the main font to Comorant Garamond (https://github.com/CatharsisFonts/Cormorant)
+% \newfontfamily\GaramondLight{Cormorant Garamond Light}
+% \newcommand\textlf[1]{{\GaramondLight#1}}
+
+\newcommand{\highlight}[1]{\textcolor{highlight}{\textbf{#1}}}		% highlight text as bold and with the highlight color defined above
+\newcommand{\ec}{\textsuperscript{\textdagger}}								% Equal contribution dagger
+
+
+% define the header and (not) footer %
+% \usepackage{fancyhdr}																		  
+% \fancyhf{}
+% \rhead{Curriculum Vit\ae}
+% \lhead{\text{Ojas Singh}}
+% \rfoot{Page \thepage}
+% \renewcommand{\headrulewidth}{0.5pt}
+% \renewcommand{\footrulewidth}{0pt}
+
+\begin{document}
+\thispagestyle{empty}					% Turn off header and footer for the first page
+% \pagestyle{fancy}			 		% For the rest of the pages switch to the fancy page style defined just above the document begin
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%% TITLE %%%%%%%%%%%% 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\vspace*{-0.2 cm}
+\centering\hspace*{-5.5cm}
+\input{title.tex}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%% SERVICE %%%%%%%%%%%% 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% \vspace*{-0.2 cm}
+\section{\textcolor{goog}{Research Interests}}
+\input{Interests.tex}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%% PUBLICATIONS %%%%%%%%%%%% 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\vspace*{-0.6 cm}
+\section{\textcolor{goog}{Research Experience}}
+\input{research.tex}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%% HONORS and SCHOLARSHIPS %%%%%%%%%%%% 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\vspace*{2 cm}
+\section{\textcolor{goog}{Relevant Coursework}}
+\input{Courses.tex}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%% SKILLS %%%%%%%%%%%% 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\vspace*{-0.3 cm}
+\section{\textcolor{goog}{Skills}}
+\input{Technical.tex}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%% EDUCATION %%%%%%%%%%%% 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\vspace*{-0.2cm}
+\section{\textcolor{goog}{Education}}
+\input{education.tex}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%% EXTRAS %%%%%%%%%%%% 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\vspace*{-0.2 cm}
+\section{\textcolor{goog}{Achievements}}
+\input{Scholastic.tex}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%% EXTRAS %%%%%%%%%%%% 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\vspace*{-0.2 cm}
+\section{\textcolor{goog}{Seminars and Conferences}}
+\input{Conferences.tex}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%% EXTRAS %%%%%%%%%%%% 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\vspace*{-0.6 cm}
+\section{\textcolor{goog}{Co-curricular}}
+\input{extra.tex}
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%% EXTRAS %%%%%%%%%%%% 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\vspace*{-0.3 cm}
+% \section{\textcolor{goog}{Referees}}
+% \input{References.tex}
+% \vfill
+% Updated Aug 2021
+\end{document}
